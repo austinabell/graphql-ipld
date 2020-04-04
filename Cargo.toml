@@ -1,0 +1,12 @@
+[package]
+name = "graphql-ipld"
+version = "0.1.0"
+authors = ["austinabell <austinabell8@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+juniper = "0.14.1"
+juniper_rocket = "0.5.1"
+rocket = "0.4.2"
+serde_json = "1.0.41"
+parking_lot = "0.10.0"

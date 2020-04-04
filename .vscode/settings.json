@@ -1,0 +1,5 @@
+{
+    "rust.rustup": {
+        "toolchain": "nightly-2020-03-09-x86_64-apple-darwin"
+    }
+}
