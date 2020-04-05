@@ -13,29 +13,6 @@ pub struct IpldStore {
 
 impl Context for IpldStore {}
 
-#[derive(juniper::GraphQLEnum, Clone)]
-pub enum Episode {
-    NewHope,
-    Empire,
-    Jedi,
-}
-
-#[derive(juniper::GraphQLObject, Clone, Default)]
-#[graphql(description = "")]
-pub struct GQLIpld {
-    null: Option<bool>, // TODO ux of this doesn't seem important but revisit
-    bool: Option<bool>,
-    integer: Option<i32>, // TODO might need i64
-    float: Option<f64>,
-    string: Option<String>,
-    bytes: Option<String>, // TODO revisit if bytes encoded as string
-    list: Option<Vec<GQLIpld>>,
-    // TODO can't really support unspecified map types in GQL
-    // map: Option<BTreeMap<String, GQLIpld>>,
-    /// Reprents a string encoded Cid
-    link: Option<String>,
-}
-
 impl Default for IpldStore {
     fn default() -> Self {
         Self {
@@ -64,6 +41,43 @@ impl IpldStore {
     }
 }
 
+#[derive(juniper::GraphQLScalarValue, Clone)]
+#[graphql(transparent)]
+pub struct Bytes(pub String);
+
+#[derive(juniper::GraphQLScalarValue, Clone)]
+#[graphql(transparent)]
+pub struct Link(pub String);
+
+#[derive(juniper::GraphQLObject, Clone, Default)]
+#[graphql(description = "")]
+pub struct GQLIpld {
+    null: Option<bool>, // TODO ux of this doesn't seem important but revisit
+    bool: Option<bool>,
+    integer: Option<i32>, // TODO might need i64
+    float: Option<f64>,
+    string: Option<String>,
+    bytes: Option<Bytes>, // TODO revisit if bytes encoded as string
+    list: Option<Vec<GQLIpld>>,
+    map: Option<Vec<MapItem>>,
+    /// Reprents a string encoded Cid
+    link: Option<Link>,
+}
+
+/// Hack around no map support with GraphQL
+#[derive(juniper::GraphQLObject, Clone, Default)]
+#[graphql(description = "")]
+pub struct MapItem {
+    key: String,
+    value: GQLIpld,
+}
+
+impl MapItem {
+    pub fn new(k: String, v: GQLIpld) -> Self {
+        Self { key: k, value: v }
+    }
+}
+
 impl From<Ipld> for GQLIpld {
     fn from(ipld: Ipld) -> Self {
         match ipld {
@@ -86,22 +100,29 @@ impl From<Ipld> for GQLIpld {
             },
             Ipld::Bytes(v) => Self {
                 // Note: This hex encodes bytes
-                bytes: Some(hex::encode(v)),
+                bytes: Some(Bytes(hex::encode(v))),
                 ..Default::default()
             },
             Ipld::List(v) => Self {
                 list: Some(v.into_iter().map(From::from).collect()),
                 ..Default::default()
             },
+            Ipld::Map(v) => Self {
+                map: Some(
+                    v.into_iter()
+                        .map(|(k, v)| MapItem::new(k, v.into()))
+                        .collect(),
+                ),
+                ..Default::default()
+            },
             Ipld::Link(v) => Self {
-                link: Some(v.to_string()),
+                link: Some(Link(v.to_string())),
                 ..Default::default()
             },
             Ipld::Null => Self {
                 null: Some(true),
                 ..Default::default()
             },
-            Ipld::Map(_) => panic!("map types not supported"),
         }
     }
 }
