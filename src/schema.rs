@@ -1,6 +1,5 @@
-use crate::model::{Database, Episode, Human, NewHuman};
+use crate::model::{Database, Human, NewHuman};
 use juniper::FieldResult;
-use juniper::{graphql_interface, Context};
 
 pub struct Query;
 

@@ -1,4 +1,4 @@
-use juniper::{graphql_interface, Context};
+use juniper::Context;
 use juniper::{FieldError, FieldResult};
 use parking_lot::RwLock;
 use std::collections::HashMap;

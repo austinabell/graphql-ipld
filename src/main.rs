@@ -6,11 +6,11 @@ extern crate juniper;
 mod model;
 mod schema;
 
-use juniper::{EmptyMutation, RootNode};
+use juniper::RootNode;
 use model::Database;
 use rocket::response::content;
 use rocket::State;
-use schema::{Query, Mutation};
+use schema::{Mutation, Query};
 
 type Schema = RootNode<'static, Query, Mutation>;
 
