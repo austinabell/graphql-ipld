@@ -18,15 +18,20 @@ impl IpldStore {
     pub fn new(store: MemoryDB) -> Self {
         Self { store }
     }
-    pub fn insert_ipld(&self, value: i32) -> Cid {
-        // TODO switch unwrap for handled error
-        self.store.put(&value, Blake2b256).unwrap()
+    pub fn insert_ipld(&self, value: i32) -> FieldResult<Cid> {
+        self.store.put(&value, Blake2b256).map_err(|e| {
+            let e_s = e.to_string();
+            FieldError::new("Store error", graphql_value!({ "internal_error": e_s }))
+        })
     }
     pub fn retrieve_ipld(&self, id: &Cid) -> FieldResult<GQLIpld> {
         Ok(self
             .store
             .get::<Ipld>(id)
-            .unwrap()
+            .map_err(|e| {
+                let e_s = e.to_string();
+                FieldError::new("Store error", graphql_value!({ "internal_error": e_s }))
+            })?
             .ok_or_else(|| {
                 FieldError::new(
                     "Temporary error",
@@ -87,12 +92,12 @@ impl GQLIpld {
     fn map(&self) -> &Option<Vec<MapItem>> {
         &self.map
     }
-    fn link(&self, context: &IpldStore) -> Option<GQLIpld> {
+    fn link(&self, context: &IpldStore) -> FieldResult<Option<GQLIpld>> {
         if let Some(link) = &self.link {
             // TODO replace unwraps with error handling
-            Some(context.retrieve_ipld(&link.0.parse().unwrap()).unwrap())
+            Ok(Some(context.retrieve_ipld(&link.0.parse()?)?))
         } else {
-            None
+            Ok(None)
         }
     }
 }

@@ -27,7 +27,7 @@ pub struct Mutation;
 impl Mutation {
     fn insertIpld(value: i32) -> FieldResult<String> {
         let mut db = executor.context();
-        let cid = db.insert_ipld(value);
+        let cid = db.insert_ipld(value)?;
         Ok(cid.to_string())
     }
 }
