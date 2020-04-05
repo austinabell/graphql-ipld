@@ -1,8 +1,7 @@
-use super::model::IpldStore;
-use super::schema::Query;
 use db::MemoryDB;
 use forest_cid::multihash::Blake2b256;
 use forest_ipld::Ipld;
+use graphql_ipld::{IpldStore, Query};
 use ipld_blockstore::BlockStore;
 use juniper::{EmptyMutation, RootNode, Value, Variables};
 use std::collections::BTreeMap;
@@ -17,8 +16,7 @@ fn test_basic_resolve() {
         }"#;
 
     let db = MemoryDB::default();
-    let ipld1 = Ipld::Integer(8);
-    let cid = db.put(&ipld1, Blake2b256).unwrap();
+    let cid = db.put(&8, Blake2b256).unwrap();
     assert_eq!(
         cid.to_string(),
         "bafy2bzaced5n2imaxvvrz6ttuz7hrewypbjb55uzdcmvaqh3qzqwi7jsdygfk"
@@ -52,14 +50,12 @@ fn test_link_resolution() {
       }"#;
 
     let db = MemoryDB::default();
-    let ipld1 = Ipld::Integer(8);
-    let cid = db.put(&ipld1, Blake2b256).unwrap();
+    let cid = db.put(&8, Blake2b256).unwrap();
     assert_eq!(
         cid.to_string(),
         "bafy2bzaced5n2imaxvvrz6ttuz7hrewypbjb55uzdcmvaqh3qzqwi7jsdygfk"
     );
-    let ipld2 = Ipld::Link(cid);
-    let cid = db.put(&ipld2, Blake2b256).unwrap();
+    let cid = db.put(&cid, Blake2b256).unwrap();
     assert_eq!(
         cid.to_string(),
         "bafy2bzacebdyrodpi5ivwjnqgzkys73khawycs7ch5olmjk2a56tvydcdlcu2"

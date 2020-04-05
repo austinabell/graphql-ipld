@@ -14,7 +14,6 @@ serde = { version = "1.0", features = ["derive"] }
 forest_ipld = { git = "https://github.com/chainsafe/forest", rev = "e2157f570a6e72671019c0e4a400f97084c71c0b" }
 ipld_blockstore = { git = "https://github.com/chainsafe/forest", rev = "e2157f570a6e72671019c0e4a400f97084c71c0b" }
 db = { git = "https://github.com/chainsafe/forest", rev = "e2157f570a6e72671019c0e4a400f97084c71c0b" }
-forest_encoding = { git = "https://github.com/chainsafe/forest", rev = "e2157f570a6e72671019c0e4a400f97084c71c0b" }
 forest_cid = { git = "https://github.com/chainsafe/forest", rev = "e2157f570a6e72671019c0e4a400f97084c71c0b" }
 hex = "0.4.2"
 
