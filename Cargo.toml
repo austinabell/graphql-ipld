@@ -17,3 +17,7 @@ db = { git = "https://github.com/chainsafe/forest", rev = "e2157f570a6e72671019c
 forest_encoding = { git = "https://github.com/chainsafe/forest", rev = "e2157f570a6e72671019c0e4a400f97084c71c0b" }
 forest_cid = { git = "https://github.com/chainsafe/forest", rev = "e2157f570a6e72671019c0e4a400f97084c71c0b" }
 hex = "0.4.2"
+
+[dev-dependencies.juniper]
+version = "0.14.2"
+features = ["expose-test-schema", "serde_json"]

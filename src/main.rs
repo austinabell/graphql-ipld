@@ -6,6 +6,9 @@ extern crate juniper;
 mod model;
 mod schema;
 
+#[cfg(all(test))]
+mod tests;
+
 use juniper::RootNode;
 use model::IpldStore;
 use rocket::response::content;

@@ -7,21 +7,17 @@ use juniper::Context;
 use juniper::{FieldError, FieldResult};
 use std::convert::TryInto;
 
+#[derive(Default)]
 pub struct IpldStore {
     store: MemoryDB,
 }
 
 impl Context for IpldStore {}
 
-impl Default for IpldStore {
-    fn default() -> Self {
-        Self {
-            store: MemoryDB::default(),
-        }
-    }
-}
-
 impl IpldStore {
+    pub fn new(store: MemoryDB) -> Self {
+        Self { store }
+    }
     pub fn insert_ipld(&self, value: i32) -> Cid {
         // TODO switch unwrap for handled error
         self.store.put(&value, Blake2b256).unwrap()
@@ -49,8 +45,7 @@ pub struct Bytes(pub String);
 #[graphql(transparent)]
 pub struct Link(pub String);
 
-#[derive(juniper::GraphQLObject, Clone, Default)]
-#[graphql(description = "")]
+#[derive(Clone, Default)]
 pub struct GQLIpld {
     null: Option<bool>, // TODO ux of this doesn't seem important but revisit
     bool: Option<bool>,
@@ -59,24 +54,62 @@ pub struct GQLIpld {
     string: Option<String>,
     bytes: Option<Bytes>, // TODO revisit if bytes encoded as string
     list: Option<Vec<GQLIpld>>,
-    map: Option<Vec<MapItem>>,
+    // map: Option<Vec<MapItem>>,
     /// Reprents a string encoded Cid
     link: Option<Link>,
 }
 
-/// Hack around no map support with GraphQL
-#[derive(juniper::GraphQLObject, Clone, Default)]
-#[graphql(description = "")]
-pub struct MapItem {
-    key: String,
-    value: GQLIpld,
-}
-
-impl MapItem {
-    pub fn new(k: String, v: GQLIpld) -> Self {
-        Self { key: k, value: v }
+#[juniper::object(
+    Context = IpldStore,
+)]
+impl GQLIpld {
+    fn null(&self) -> Option<bool> {
+        self.null
+    }
+    fn bool(&self) -> Option<bool> {
+        self.bool
+    }
+    fn integer(&self) -> Option<i32> {
+        self.integer
+    }
+    fn float(&self) -> Option<f64> {
+        self.float
+    }
+    fn string(&self) -> &Option<String> {
+        &self.string
+    }
+    fn bytes(&self) -> &Option<Bytes> {
+        &self.bytes
+    }
+    fn list(&self) -> &Option<Vec<GQLIpld>> {
+        &self.list
+    }
+    // fn map(&self) -> Option<Vec<MapItem>> {
+    //     None
+    // }
+    fn link(&self, context: &IpldStore) -> Option<GQLIpld> {
+        if let Some(link) = &self.link {
+            // TODO replace unwraps with error handling
+            Some(context.retrieve_ipld(&link.0.parse().unwrap()).unwrap())
+        } else {
+            None
+        }
     }
 }
+
+// /// Hack around no map support with GraphQL
+// #[derive(juniper::GraphQLObject, Clone, Default)]
+// #[graphql(description = "")]
+// pub struct MapItem {
+//     key: String,
+//     value: GQLIpld,
+// }
+
+// impl MapItem {
+//     pub fn new(k: String, v: GQLIpld) -> Self {
+//         Self { key: k, value: v }
+//     }
+// }
 
 impl From<Ipld> for GQLIpld {
     fn from(ipld: Ipld) -> Self {
@@ -107,14 +140,15 @@ impl From<Ipld> for GQLIpld {
                 list: Some(v.into_iter().map(From::from).collect()),
                 ..Default::default()
             },
-            Ipld::Map(v) => Self {
-                map: Some(
-                    v.into_iter()
-                        .map(|(k, v)| MapItem::new(k, v.into()))
-                        .collect(),
-                ),
-                ..Default::default()
-            },
+            Ipld::Map(_) => todo!(),
+            // Ipld::Map(v) => Self {
+            //     map: Some(
+            //         v.into_iter()
+            //             .map(|(k, v)| MapItem::new(k, v.into()))
+            //             .collect(),
+            //     ),
+            //     ..Default::default()
+            // },
             Ipld::Link(v) => Self {
                 link: Some(Link(v.to_string())),
                 ..Default::default()
