@@ -7,7 +7,7 @@ mod model;
 mod schema;
 
 use juniper::RootNode;
-use model::Database;
+use model::IpldStore;
 use rocket::response::content;
 use rocket::State;
 use schema::{Mutation, Query};
@@ -21,7 +21,7 @@ fn graphiql() -> content::Html<String> {
 
 #[rocket::get("/graphql?<request>")]
 fn get_graphql_handler(
-    context: State<Database>,
+    context: State<IpldStore>,
     request: juniper_rocket::GraphQLRequest,
     schema: State<Schema>,
 ) -> juniper_rocket::GraphQLResponse {
@@ -30,7 +30,7 @@ fn get_graphql_handler(
 
 #[rocket::post("/graphql", data = "<request>")]
 fn post_graphql_handler(
-    context: State<Database>,
+    context: State<IpldStore>,
     request: juniper_rocket::GraphQLRequest,
     schema: State<Schema>,
 ) -> juniper_rocket::GraphQLResponse {
@@ -39,7 +39,7 @@ fn post_graphql_handler(
 
 fn main() {
     rocket::ignite()
-        .manage(Database::new())
+        .manage(IpldStore::default())
         .manage(Schema::new(Query, Mutation))
         .mount(
             "/",

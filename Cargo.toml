@@ -5,8 +5,15 @@ authors = ["austinabell <austinabell8@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-juniper = "0.14.1"
+juniper = "0.14.2"
 juniper_rocket = "0.5.1"
 rocket = "0.4.2"
 serde_json = "1.0.41"
 parking_lot = "0.10.0"
+serde = { version = "1.0", features = ["derive"] }
+forest_ipld = { git = "https://github.com/chainsafe/forest", rev = "e2157f570a6e72671019c0e4a400f97084c71c0b" }
+ipld_blockstore = { git = "https://github.com/chainsafe/forest", rev = "e2157f570a6e72671019c0e4a400f97084c71c0b" }
+db = { git = "https://github.com/chainsafe/forest", rev = "e2157f570a6e72671019c0e4a400f97084c71c0b" }
+forest_encoding = { git = "https://github.com/chainsafe/forest", rev = "e2157f570a6e72671019c0e4a400f97084c71c0b" }
+forest_cid = { git = "https://github.com/chainsafe/forest", rev = "e2157f570a6e72671019c0e4a400f97084c71c0b" }
+hex = "0.4.2"

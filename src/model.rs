@@ -1,13 +1,17 @@
+// use super::ipld_visitor::IpldVisitor;
+use db::MemoryDB;
+use forest_cid::{multihash::Blake2b256, Cid};
+use forest_ipld::Ipld;
+use ipld_blockstore::BlockStore;
 use juniper::Context;
 use juniper::{FieldError, FieldResult};
-use parking_lot::RwLock;
-use std::collections::HashMap;
+use std::convert::TryInto;
 
-pub struct Database {
-    humans: RwLock<HashMap<String, Human>>,
+pub struct IpldStore {
+    store: MemoryDB,
 }
 
-impl Context for Database {}
+impl Context for IpldStore {}
 
 #[derive(juniper::GraphQLEnum, Clone)]
 pub enum Episode {
@@ -16,57 +20,88 @@ pub enum Episode {
     Jedi,
 }
 
-#[derive(juniper::GraphQLObject, Clone)]
-#[graphql(description = "A humanoid creature in the Star Wars universe")]
-pub struct Human {
-    id: String,
-    name: String,
-    appears_in: Vec<Episode>,
-    home_planet: String,
+#[derive(juniper::GraphQLObject, Clone, Default)]
+#[graphql(description = "")]
+pub struct GQLIpld {
+    null: Option<bool>, // TODO ux of this doesn't seem important but revisit
+    bool: Option<bool>,
+    integer: Option<i32>, // TODO might need i64
+    float: Option<f64>,
+    string: Option<String>,
+    bytes: Option<String>, // TODO revisit if bytes encoded as string
+    list: Option<Vec<GQLIpld>>,
+    // TODO can't really support unspecified map types in GQL
+    // map: Option<BTreeMap<String, GQLIpld>>,
+    /// Reprents a string encoded Cid
+    link: Option<String>,
 }
 
-#[derive(juniper::GraphQLInputObject)]
-#[graphql(description = "A humanoid creature in the Star Wars universe")]
-pub struct NewHuman {
-    pub name: String,
-    pub appears_in: Vec<Episode>,
-    pub home_planet: String,
-}
-
-impl Database {
-    pub fn new() -> Database {
-        let mut humans = HashMap::new();
-
-        humans.insert(
-            "1000".to_owned(),
-            Human {
-                id: "1000".to_owned(),
-                name: "Luke Skywalker".to_owned(),
-                appears_in: vec![Episode::NewHope, Episode::Empire, Episode::Jedi],
-                home_planet: "Tatooine".to_owned(),
-            },
-        );
-
-        Database {
-            humans: RwLock::new(humans),
+impl Default for IpldStore {
+    fn default() -> Self {
+        Self {
+            store: MemoryDB::default(),
         }
     }
-    pub fn insert_human(&self, human: NewHuman) -> Human {
-        let human = Human {
-            id: "1002".to_owned(),
-            name: human.name,
-            appears_in: human.appears_in,
-            home_planet: human.home_planet,
-        };
-        self.humans.write().insert("1002".to_owned(), human.clone());
-        human
+}
+
+impl IpldStore {
+    pub fn insert_ipld(&self, value: i32) -> Cid {
+        // TODO switch unwrap for handled error
+        self.store.put(&value, Blake2b256).unwrap()
     }
-    pub fn find_human(&self, id: &str) -> FieldResult<Human> {
-        self.humans.read().get(id).cloned().ok_or_else(|| {
-            FieldError::new(
-                "Could not open connection to the database",
-                graphql_value!({ "internal_error": "Connection refused" }),
-            )
-        })
+    pub fn retrieve_ipld(&self, id: &Cid) -> FieldResult<GQLIpld> {
+        Ok(self
+            .store
+            .get::<Ipld>(id)
+            .unwrap()
+            .ok_or_else(|| {
+                FieldError::new(
+                    "Temporary error",
+                    graphql_value!({ "internal_error": "I'm too lazy to write a real error" }),
+                )
+            })?
+            .into())
+    }
+}
+
+impl From<Ipld> for GQLIpld {
+    fn from(ipld: Ipld) -> Self {
+        match ipld {
+            Ipld::Bool(v) => Self {
+                bool: Some(v),
+                ..Default::default()
+            },
+            Ipld::Integer(v) => Self {
+                // TODO this will panic on integer size more than 32 bits
+                integer: Some(v.try_into().unwrap()),
+                ..Default::default()
+            },
+            Ipld::Float(v) => Self {
+                float: Some(v),
+                ..Default::default()
+            },
+            Ipld::String(v) => Self {
+                string: Some(v),
+                ..Default::default()
+            },
+            Ipld::Bytes(v) => Self {
+                // Note: This hex encodes bytes
+                bytes: Some(hex::encode(v)),
+                ..Default::default()
+            },
+            Ipld::List(v) => Self {
+                list: Some(v.into_iter().map(From::from).collect()),
+                ..Default::default()
+            },
+            Ipld::Link(v) => Self {
+                link: Some(v.to_string()),
+                ..Default::default()
+            },
+            Ipld::Null => Self {
+                null: Some(true),
+                ..Default::default()
+            },
+            Ipld::Map(_) => panic!("map types not supported"),
+        }
     }
 }
