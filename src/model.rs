@@ -54,7 +54,7 @@ pub struct GQLIpld {
     string: Option<String>,
     bytes: Option<Bytes>, // TODO revisit if bytes encoded as string
     list: Option<Vec<GQLIpld>>,
-    // map: Option<Vec<MapItem>>,
+    map: Option<Vec<MapItem>>,
     /// Reprents a string encoded Cid
     link: Option<Link>,
 }
@@ -84,9 +84,9 @@ impl GQLIpld {
     fn list(&self) -> &Option<Vec<GQLIpld>> {
         &self.list
     }
-    // fn map(&self) -> Option<Vec<MapItem>> {
-    //     None
-    // }
+    fn map(&self) -> &Option<Vec<MapItem>> {
+        &self.map
+    }
     fn link(&self, context: &IpldStore) -> Option<GQLIpld> {
         if let Some(link) = &self.link {
             // TODO replace unwraps with error handling
@@ -97,19 +97,30 @@ impl GQLIpld {
     }
 }
 
-// /// Hack around no map support with GraphQL
-// #[derive(juniper::GraphQLObject, Clone, Default)]
-// #[graphql(description = "")]
-// pub struct MapItem {
-//     key: String,
-//     value: GQLIpld,
-// }
+/// Hack around no map support with GraphQL
+#[derive(Clone, Default)]
+pub struct MapItem {
+    key: String,
+    value: GQLIpld,
+}
 
-// impl MapItem {
-//     pub fn new(k: String, v: GQLIpld) -> Self {
-//         Self { key: k, value: v }
-//     }
-// }
+impl MapItem {
+    pub fn new(k: String, v: GQLIpld) -> Self {
+        Self { key: k, value: v }
+    }
+}
+
+#[juniper::object(
+    Context = IpldStore,
+)]
+impl MapItem {
+    fn key(&self) -> &str {
+        &self.key
+    }
+    fn value(&self) -> &GQLIpld {
+        &self.value
+    }
+}
 
 impl From<Ipld> for GQLIpld {
     fn from(ipld: Ipld) -> Self {
@@ -140,15 +151,14 @@ impl From<Ipld> for GQLIpld {
                 list: Some(v.into_iter().map(From::from).collect()),
                 ..Default::default()
             },
-            Ipld::Map(_) => todo!(),
-            // Ipld::Map(v) => Self {
-            //     map: Some(
-            //         v.into_iter()
-            //             .map(|(k, v)| MapItem::new(k, v.into()))
-            //             .collect(),
-            //     ),
-            //     ..Default::default()
-            // },
+            Ipld::Map(v) => Self {
+                map: Some(
+                    v.into_iter()
+                        .map(|(k, v)| MapItem::new(k, v.into()))
+                        .collect(),
+                ),
+                ..Default::default()
+            },
             Ipld::Link(v) => Self {
                 link: Some(Link(v.to_string())),
                 ..Default::default()
