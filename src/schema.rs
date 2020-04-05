@@ -11,7 +11,7 @@ impl Query {
         "1.0"
     }
 
-    fn resolve(context: &IpldStore, cid: String) -> FieldResult<GQLIpld> {
+    fn resolve(context: &IpldStore, cid: String) -> FieldResult<Option<GQLIpld>> {
         // Execute a db query.
         let data = context.retrieve_ipld(&cid.parse()?)?;
         // Return the result.

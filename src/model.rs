@@ -24,7 +24,7 @@ impl IpldStore {
             FieldError::new("Store error", graphql_value!({ "internal_error": e_s }))
         })
     }
-    pub fn retrieve_ipld(&self, id: &Cid) -> FieldResult<GQLIpld> {
+    pub fn retrieve_ipld(&self, id: &Cid) -> FieldResult<Option<GQLIpld>> {
         Ok(self
             .store
             .get::<Ipld>(id)
@@ -32,13 +32,7 @@ impl IpldStore {
                 let e_s = e.to_string();
                 FieldError::new("Store error", graphql_value!({ "internal_error": e_s }))
             })?
-            .ok_or_else(|| {
-                FieldError::new(
-                    "Temporary error",
-                    graphql_value!({ "internal_error": "I'm too lazy to write a real error" }),
-                )
-            })?
-            .into())
+            .map(From::from))
     }
 }
 
@@ -52,12 +46,12 @@ pub struct Link(pub String);
 
 #[derive(Clone, Default)]
 pub struct GQLIpld {
-    null: Option<bool>, // TODO ux of this doesn't seem important but revisit
+    null: Option<bool>,
     bool: Option<bool>,
     integer: Option<i32>, // TODO might need i64
     float: Option<f64>,
     string: Option<String>,
-    bytes: Option<Bytes>, // TODO revisit if bytes encoded as string
+    bytes: Option<Bytes>,
     list: Option<Vec<GQLIpld>>,
     map: Option<Vec<MapItem>>,
     /// Reprents a string encoded Cid
@@ -94,8 +88,7 @@ impl GQLIpld {
     }
     fn link(&self, context: &IpldStore) -> FieldResult<Option<GQLIpld>> {
         if let Some(link) = &self.link {
-            // TODO replace unwraps with error handling
-            Ok(Some(context.retrieve_ipld(&link.0.parse()?)?))
+            Ok(context.retrieve_ipld(&link.0.parse()?)?)
         } else {
             Ok(None)
         }
